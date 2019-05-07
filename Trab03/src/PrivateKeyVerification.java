@@ -1,4 +1,8 @@
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -24,8 +28,22 @@ public class PrivateKeyVerification {
 			Cipher chipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
 			byte [] seed = args[1].getBytes();
 			Key k = generateKey(seed);
-			
-			
+			byte[] plainText;
+			byte[] encryptedText;
+			Path pFile = Paths.get(args[0]) ;
+			byte[] privateKeyText;
+			/* after generating the key from the secret passsword decrypt!*/
+			encryptedText = ReadArquive(pFile);
+			try {
+				plainText = decrypt(k,chipher,encryptedText);
+				/* plainText contains the private Key*/
+//				String stringKey = new String(convertToString(plainText));
+//				System.out.println("chiave privata"+":"+ stringKey);
+			} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
+					| UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -35,6 +53,23 @@ public class PrivateKeyVerification {
 		}
 	}
 	
+	private static byte[] ReadArquive(Path pFile) {
+	
+		if(Files.exists(pFile) == false) {
+			System.err.print("FILE DOESN'T EXIST, EXITING \n");
+			System.exit(2);
+		}
+		
+		try {
+			byte[] fileBytes = Files.readAllBytes(pFile);
+			return fileBytes;
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		return null;
+	}
+
 	private static Key generateKey(byte[] seed) {
 		// how do I use SHA1PRNG??
 		
@@ -60,7 +95,7 @@ public class PrivateKeyVerification {
 		return null;
 	}
 
-	public byte[] decrypt(Key k,  Cipher cipher,byte[] cipherText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
+	public static byte[] decrypt(Key k,  Cipher cipher,byte[] cipherText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
 	
 		cipher.init(Cipher.DECRYPT_MODE, k);
 		byte[] newPlainText = cipher.doFinal(cipherText);
@@ -68,4 +103,13 @@ public class PrivateKeyVerification {
 		System.out.println( new String(newPlainText, "UTF8") );
 		return newPlainText;
 	}
+	
+//	public static String convertToString(byte[] fileBytes) {
+//		String string = new String();
+//		if(fileBytes != null) {
+//			for(int i = 0; i < fileBytes.length; i++)
+//				string = string + String.format("%02X", fileBytes[i]);
+//		}
+//		return string;
+//	}
 }
