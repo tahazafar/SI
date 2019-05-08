@@ -7,6 +7,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.List;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -31,14 +32,14 @@ public class PrivateKeyVerification {
 			byte[] plainText;
 			byte[] encryptedText;
 			Path pFile = Paths.get(args[0]) ;
-			byte[] privateKeyText;
+			byte[] privateKeyBytes;
 			/* after generating the key from the secret passsword decrypt!*/
 			encryptedText = ReadArquive(pFile);
 			try {
 				plainText = decrypt(k,chipher,encryptedText);
-				/* plainText contains the private Key*/
-//				String stringKey = new String(convertToString(plainText));
-//				System.out.println("chiave privata"+":"+ stringKey);
+				/* plainText contains the private Key and some attidional phrase*/
+				privateKeyBytes = parsePrivateKey(plainText);
+				
 			} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
 					| UnsupportedEncodingException e) {
 				// TODO Auto-generated catch block
@@ -53,6 +54,30 @@ public class PrivateKeyVerification {
 		}
 	}
 	
+	private static byte[] parsePrivateKey(byte[] plainText) {
+		try {
+			String decrypted = new String(plainText, "UTF8" );
+			int i = 0;
+			String[] parts = decrypted.split("\n"); 
+			StringBuffer sb = new StringBuffer();
+			for(String s: parts) {
+				if(i == 0 || i ==( parts.length-1)) {
+					
+				}else {
+					sb.append(s+"\n");
+				}
+				i++;
+			}
+		//	System.out.println(sb);
+			return sb.toString().getBytes();
+		} catch (UnsupportedEncodingException e) {
+		
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+
 	private static byte[] ReadArquive(Path pFile) {
 	
 		if(Files.exists(pFile) == false) {
