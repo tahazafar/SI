@@ -5,8 +5,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import java.util.List;
 
 import javax.crypto.BadPaddingException;
@@ -28,33 +33,47 @@ public class PrivateKeyVerification {
 		try {
 			Cipher chipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
 			byte [] seed = args[1].getBytes();
-			Key k = generateKey(seed);
-			byte[] plainText;
+			Key k = generateSecretKey(seed);
+			byte[] base64Text;
 			byte[] encryptedText;
 			Path pFile = Paths.get(args[0]) ;
-			byte[] privateKeyBytes;
+			String privateKey64encoded;
+			byte[] pK64decoded;
 			/* after generating the key from the secret passsword decrypt!*/
 			encryptedText = ReadArquive(pFile);
 			try {
-				plainText = decrypt(k,chipher,encryptedText);
+				base64Text = decryptDES(k,chipher,encryptedText);
 				/* plainText contains the private Key and some attidional phrase*/
-				privateKeyBytes = parsePrivateKey(plainText);
+				privateKey64encoded = parsePrivateKey(base64Text);
+				/* now we have the 64BASE encoded String of the key*/
+				pK64decoded = Base64.getDecoder().decode(privateKey64encoded);
 				
+				PKCS8EncodedKeySpec Keyspec = new PKCS8EncodedKeySpec(pK64decoded);
+				/*RSA is the standard for Asymmetric Key*/
+				KeyFactory keyF = KeyFactory.getInstance("RSA");
+				try {
+					PrivateKey privateKey = keyF.generatePrivate(Keyspec);
+					
+				} catch (InvalidKeySpecException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
 					| UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
+				
 				e.printStackTrace();
 			}
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 	}
 	
-	private static byte[] parsePrivateKey(byte[] plainText) {
+	/* it removes BEGIN key and --END KEY--*/
+	private static String parsePrivateKey(byte[] plainText) {
 		try {
 			String decrypted = new String(plainText, "UTF8" );
 			int i = 0;
@@ -69,7 +88,7 @@ public class PrivateKeyVerification {
 				i++;
 			}
 		//	System.out.println(sb);
-			return sb.toString().getBytes();
+			return sb.toString();
 		} catch (UnsupportedEncodingException e) {
 		
 			e.printStackTrace();
@@ -95,7 +114,7 @@ public class PrivateKeyVerification {
 		return null;
 	}
 
-	private static Key generateKey(byte[] seed) {
+	private static Key generateSecretKey(byte[] seed) {
 		// how do I use SHA1PRNG??
 		
 		try {
@@ -120,7 +139,7 @@ public class PrivateKeyVerification {
 		return null;
 	}
 
-	public static byte[] decrypt(Key k,  Cipher cipher,byte[] cipherText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
+	public static byte[] decryptDES(Key k,  Cipher cipher,byte[] cipherText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
 	
 		cipher.init(Cipher.DECRYPT_MODE, k);
 		byte[] newPlainText = cipher.doFinal(cipherText);
